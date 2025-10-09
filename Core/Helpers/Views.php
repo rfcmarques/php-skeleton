@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 function view(string $name, array $data = []): void
 {
     $viewPath = basePath("App/Views/{$name}.view.php");
@@ -12,7 +14,7 @@ function view(string $name, array $data = []): void
     require $viewPath;
 }
 
-function partial (string $name, array $data = []): void
+function partial(string $name, array $data = []): void
 {
     $partialPath = basePath("App/Views/Partials/{$name}.partial.php");
 
