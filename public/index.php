@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-header('Content-Type: text/plain; charset=utf-8');
+header('Content-Type: text/html; charset=utf-8');
 
 define('APP_PATH', dirname(__DIR__));
 
