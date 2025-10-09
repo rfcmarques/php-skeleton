@@ -26,7 +26,7 @@ function dump(mixed ...$vars): void
  * @param mixed[] $vars
  * @return never
  */
-function dd(mixed ...$vars): void
+function dd(mixed ...$vars): never
 {
     dump(...$vars);
     die();
