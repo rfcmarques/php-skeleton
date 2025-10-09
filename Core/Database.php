@@ -343,10 +343,10 @@ class Database
      */
     public function count(): int
     {
-        $sql = $this->buildSelectQuery();
-        $count = $this->execute($sql)->rowCount();
+        $sql = $this->buildCountQuery();
+        $row = $this->execute($sql)->fetch(PDO::FETCH_ASSOC) ?: ['cnt' => 0];
         $this->reset();
-        return $count;
+        return (int) $row['cnt'];
     }
 
     /**
@@ -359,6 +359,20 @@ class Database
         return $this->buildSelectQuery();
     }
 
+    protected function buildCountQuery(): string
+    {
+        $sql = "SELECT COUNT(*) AS cnt FROM {$this->table}";
+        if (!empty($this->conditions)) {
+            $clauses = [];
+            foreach ($this->conditions as $index => $cond) {
+                $prefix = $index === 0 ? '' : ' ' . $cond['type'] . ' ';
+                $clauses[] = $prefix . $cond['clause'];
+            }
+            $sql .= " WHERE " . implode('', $clauses);
+        }
+        return $sql;
+    }
+
     /**
      * Build the select query
      * 
@@ -367,19 +381,18 @@ class Database
      */
     protected function buildSelectQuery(bool $single = false): string
     {
-        $this->fields = empty($this->fields) ? ['*'] : $this->fields;
-
-        $sql = "SELECT " . implode(", ", $this->fields) . " FROM {$this->table}";
+        $fields = empty($this->fields) ? ['*'] : $this->fields;
+        $sql = "SELECT " . implode(", ", $fields) . " FROM {$this->table}";
 
         if (!empty($this->conditions)) {
-            $whereClauses = array_map(function ($condition, $index) {
-                // Use placeholders in the query
-                $placeholder = ":{$condition['field']}";
-                $clause = "{$condition['field']} {$condition['operator']} $placeholder";
-                return ($index === 0) ? $clause : "{$condition['type']} {$clause}";
-            }, $this->conditions, array_keys($this->conditions));
+            $clauses = [];
 
-            $sql .= " WHERE " . implode(" ", $whereClauses);
+            foreach ($this->conditions as $index => $condition) {
+                $prefix = $index === 0 ? '' : " {$condition['type']} ";
+                $clauses[] = $prefix . $condition['clause'];
+            }
+
+            $sql .= " WHERE " . implode("", $clauses);
         }
 
         if (!empty($this->orderBy)) {
@@ -387,12 +400,10 @@ class Database
         }
 
         if ($single) {
-            $sql .= " LIMIT 1";
-        } elseif (!empty($this->limit)) {
-            $sql .= " LIMIT {$this->limit}";
+            return $sql .= " LIMIT 1";
         }
 
-        return $sql;
+        return $sql .= !empty($this->limit) ? " LIMIT {$this->limit}" : '';
     }
 
     /**
@@ -407,30 +418,51 @@ class Database
      */
     protected function addCondition(string $type, string $field, string $operator, $value = null): self
     {
-        if (is_array($value)) {
-            $placeholders = array_map(function ($index) use ($field) {
-                return ":{$field}_{$index}";
-            }, array_keys($value));
+        $clause   = '';
+        $bindings = [];
 
+        switch (strtoupper($operator)) {
+            case 'IN':
+            case 'NOT IN':
+                if (!is_array($value) || $value === []) {
+                    throw new \InvalidArgumentException("Value for {$operator} must be a non-empty array.");
+                }
+                $phs = [];
+                foreach (array_values($value) as $i => $val) {
+                    $ph = ":{$field}_{$i}";
+                    $phs[] = $ph;
+                    $bindings[$ph] = $val;
+                }
+                $clause = "{$field} {$operator} (" . implode(', ', $phs) . ")";
+                break;
 
-            foreach ($placeholders as $index => $placeholder) {
-                $this->bindings[$placeholder] = $value[$index];
-            }
+            case 'BETWEEN':
+            case 'NOT BETWEEN':
+                if (!is_array($value) || count($value) !== 2) {
+                    throw new \InvalidArgumentException("Value for {$operator} must be [from, to].");
+                }
+                [$v1, $v2] = array_values($value);
+                $ph1 = ":{$field}_from";
+                $ph2 = ":{$field}_to";
+                $bindings[$ph1] = $v1;
+                $bindings[$ph2] = $v2;
+                $clause = "{$field} {$operator} {$ph1} AND {$ph2}";
+                break;
 
-            $value = '(' . implode(', ', $placeholders) . ')';
-        } elseif (is_null($value)) {
-            // Handle NULL values
-            $operator = ($operator === 'IS NOT') ? 'IS NOT' : 'IS';
-            $value = 'NULL';
+            case 'IS':
+            case 'IS NOT':
+                $clause = "{$field} {$operator} NULL";
+                break;
+
+            default:
+                $ph = ":{$field}";
+                $bindings[$ph] = $value;
+                $clause = "{$field} {$operator} {$ph}";
         }
 
+        $this->conditions[] = ['type' => $type, 'clause' => $clause];
 
-        $this->conditions[] = compact('type', 'field', 'operator', 'value');
-
-
-        if (!is_array($value) && $value !== 'NULL') {
-            $this->bindings[":$field"] = $value;
-        }
+        $this->bindings = array_replace($this->bindings, $bindings);
 
         return $this;
     }
