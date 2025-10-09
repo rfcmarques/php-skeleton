@@ -8,4 +8,4 @@
     <title>Skeleton</title>
 </head>
 
-<body class="bg-gray-100"></body>
+<body>
