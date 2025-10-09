@@ -21,6 +21,11 @@
       "Core/Helpers/Http.php"
     ]
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
   "require-dev": {
     "pestphp/pest": "^4.1"
   },
