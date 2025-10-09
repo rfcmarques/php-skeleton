@@ -1,0 +1,21 @@
+{
+  "name": "rfcmarques/php-skeleton",
+  "description": "A PHP skeleton project",
+  "type": "project",
+  "authors": [
+    {
+      "name": "Rui Marques",
+      "email": "rui.marques1997@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Core\\": "Core/",
+      "App\\": "App/"
+    },
+    "files": [
+      "Core/Helpers/Debugging.php",
+      "Core/Helpers/"
+    ]
+  }
+}
