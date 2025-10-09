@@ -27,11 +27,18 @@
     }
   },
   "require-dev": {
-    "pestphp/pest": "^4.1"
+    "pestphp/pest": "^4.1",
+    "phpstan/phpstan": "^2.1"
   },
   "config": {
     "allow-plugins": {
       "pestphp/pest-plugin": true
     }
+  },
+  "scripts": {
+    "serve": "php -S localhost:8000 -t public",
+    "test": "pest",
+    "analyse": "phpstan analyse",
+    "fix": "php-cs-fixer fix"
   }
 }
