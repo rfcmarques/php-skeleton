@@ -9,7 +9,7 @@ class Session
      * 
      * @return void
      */
-    public static function start()
+    public static function start(): void
     {
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
@@ -23,7 +23,7 @@ class Session
      * @param mixed $value
      * @return void
      */
-    public static function set($key, $value)
+    public static function set(string $key, mixed $value): void
     {
         $_SESSION[$key] = $value;
     }
@@ -35,7 +35,7 @@ class Session
      * @param mixed $default
      * @return mixed
      */
-    public static function get($key, $default = null)
+    public static function get(string $key, mixed $default = null): mixed
     {
         return static::has($key) ? $_SESSION[$key] : $default;
     }
@@ -46,7 +46,7 @@ class Session
      * @param string $key
      * @return bool
      */
-    public static function has($key)
+    public static function has(string $key): bool
     {
         return isset($_SESSION[$key]);
     }
@@ -57,7 +57,7 @@ class Session
      * @param string $key
      * @return void
      */
-    public static function clear($key)
+    public static function clear(string $key): void
     {
         if (static::has($key)) {
             unset($_SESSION[$key]);
@@ -69,7 +69,7 @@ class Session
      * 
      * @return void
      */
-    public static function destroy()
+    public static function destroy(): void
     {
         session_unset();
         session_destroy();
@@ -82,7 +82,7 @@ class Session
      * @param string $message
      * @return void
      */
-    public static function setFlashMessage($key, $message)
+    public static function setFlashMessage(string $key, string $message): void
     {
         static::set('flash_' . $key, $message);
     }
@@ -94,7 +94,7 @@ class Session
      * @param mixed $default
      * @return mixed
      */
-    public static function flash($key, $default = null)
+    public static function flash(string $key, mixed $default = null): mixed
     {
         $message = static::get('flash_' . $key, $default);
         static::clear('flash_' . $key);
