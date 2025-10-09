@@ -14,8 +14,11 @@
       "App\\": "App/"
     },
     "files": [
-      "Core/Helpers/Debugging.php",
-      "Core/Helpers/"
+      "Core/Helpers/Debug.php",
+      "Core/Helpers/Path.php",
+      "Core/Helpers/Views.php",
+      "Core/Helpers/Format.php",
+      "Core/Helpers/Http.php"
     ]
   }
 }
