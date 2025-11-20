@@ -1,12 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Core;
 
 use Core\Middleware\Authorize;
 
-class Router
+final class Router
 {
     protected $routes = [];
+
+    private $controllerFactory;
+
+    public function __construct(?callable $controllerFactory = null)
+    {
+        $this->controllerFactory = $controllerFactory ?? static fn(string $fqcn) => new $fqcn();
+    }
 
     public function add(string $method, string $uri, string $action, array $middleware = []): void
     {
@@ -43,7 +52,7 @@ class Router
 
     public function dispatch(string $uri): void
     {
-        $requestMethod = $_SERVER['REQUEST_METHOD'];
+        $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
         if ($requestMethod === 'POST' && isset($_POST['_method'])) {
             $requestMethod = strtoupper((string) $_POST['_method']);
@@ -56,25 +65,30 @@ class Router
         $path = '/' . trim($uri, '/');
 
         foreach ($this->routes as $route) {
-            if ($route['method'] !== $requestMethod) continue;
+            if ($route['method'] !== $requestMethod) {
+                continue;
+            }
 
             $params = [];
-
             if ($this->match($path, $route['uri'], $params)) {
-                foreach ($route['middleware'] as $middleware) {
-                    (new Authorize())->handle($middleware);
+                foreach ($route['middleware'] as $mw) {
+                    (new Authorize())->handle($mw);
                 }
 
-                $controller = 'App\\Controllers\\' . $route['controller'];
-                $controllerMethod = $route['controllerMethod'];
+                $fqcn       = 'App\\Controllers\\' . $route['controller'];
+                $controller = ($this->controllerFactory)($fqcn);
+                $method     = $route['controllerMethod'];
 
-                $controllerInstance = new $controller();
-                $controllerInstance->$controllerMethod($params);
+                $controller->$method($params);
                 return;
             }
         }
 
-        if (class_exists('App\\Controllers\\ErrorController') && method_exists('App\\Controllers\\ErrorController', 'notFound')) {
+
+        if (
+            class_exists(\App\Controllers\ErrorController::class)
+            && method_exists(\App\Controllers\ErrorController::class, 'notFound')
+        ) {
             \App\Controllers\ErrorController::notFound();
             return;
         }
@@ -85,8 +99,8 @@ class Router
 
     protected function match(string $path, string $routeUri, array &$params): bool
     {
-        $uriSegments = $path === '/' ? [] : explode('/', trim($path, '/'));
-        $routeSegments = $routeUri   === '/' ? [] : explode('/', trim($routeUri, '/'));
+        $uriSegments   = $path     === '/' ? [] : explode('/', trim($path, '/'));
+        $routeSegments = $routeUri === '/' ? [] : explode('/', trim($routeUri, '/'));
 
         if (count($uriSegments) !== count($routeSegments)) {
             return false;
@@ -94,7 +108,7 @@ class Router
 
         $params = [];
         foreach ($routeSegments as $i => $segment) {
-            if (preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_]*)\}$/', $segment, $m)) {
+            if (\preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_]*)\}$/', $segment, $m)) {
                 $params[$m[1]] = $uriSegments[$i];
                 continue;
             }
